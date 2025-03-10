@@ -40,7 +40,7 @@ BASE_PAGE = """
     {% endif %}
     <form method="GET" action="/">
       <div class="mb-3">
-        <label for="template" class="form-label">Template</label>
+        <label for="template" class="form-label">Box</label>
         <textarea class="form-control" id="template" name="template" rows="6" placeholder="Write down there...">{{ request.args.get('template', '') }}</textarea>
       </div>
       <button type="submit" class="btn btn-primary">Submit</button>
