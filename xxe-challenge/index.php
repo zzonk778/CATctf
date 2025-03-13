@@ -1,27 +1,35 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $xmlData = $_POST['xmlInput'];
+    $xmlData = trim($_POST['xmlInput']);
 
-    // Allow external entities (for older PHP versions)
-    libxml_disable_entity_loader(false);
-    
-    $dom = new DOMDocument();
-    // Load XML with options to resolve entities and load DTD
-    if (!$dom->loadXML($xmlData, LIBXML_NOENT | LIBXML_DTDLOAD)) {
-        die("<p style='color: #ff0066;'>❌ Invalid XML document!</p>");
+    if (empty($xmlData)) {
+        die("<p class='error-message'>❌ Invalid XML document!</p>");
     }
 
-    // Convert DOM to SimpleXML for easier access
-    $vaultData = simplexml_import_dom($dom);
-    
-    // Fake "Processing" delay (for realism)
-    sleep(2);
+    $dom = new DOMDocument();
+    try {
+        // Enable entity loading for XXE (CTF purposes only - dangerous in production!)
+        $dom->resolveExternals = true;
+        $dom->substituteEntities = true;
 
-    // Output the content of the root element (data) with black text
-    echo "<div style='text-align: center; font-family: \"Poppins\", sans-serif; padding: 20px; background: #fff; border-radius: 15px; box-shadow: 0 0 20px rgba(255, 0, 102, 0.5);'>";
-    echo "<h2 style='color: #00ff99;'>✅ Document Processed Successfully!</h2>";
-    echo "<p style='color: #000000;'><strong>Security Log ID:</strong> " . htmlspecialchars($vaultData) . "</p>";
-    echo "</div>";
+        if (!$dom->loadXML($xmlData, LIBXML_NOENT)) { // Changed from LIBXML_NONET
+            throw new Exception();
+        }
+
+        // Convert DOM to SimpleXML
+        $vaultData = simplexml_import_dom($dom);
+        
+        // Fake "Processing" delay
+        sleep(2);
+
+        // Output success message with the resolved entity content
+        echo "<div class='success-container'>";
+        echo "<h2 class='success-heading'>✅ Document Processed Successfully!</h2>";
+        echo "<p class='success-text'><strong>Security Log ID:</strong> " . htmlspecialchars($vaultData) . "</p>";
+        echo "</div>";
+    } catch (Exception $e) {
+        die("<p class='error-message'>❌ Invalid XML document!</p>");
+    }
     exit;
 }
 ?>
@@ -33,155 +41,219 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SecureDoc Validator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #3a86ff;
+            --primary-dark: #2667cc;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --dark: #1a1a2e;
+            --dark-light: #22223b;
+            --text: #e0e0e0;
+            --text-muted: #aaaaaa;
+            --border: #444444;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #000000, #1a0033); /* Black to deep purple */
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            color: var(--text);
+            line-height: 1.6;
         }
+
         .container {
-            background: rgba(0, 0, 0, 0.8); /* Dark semi-transparent */
-            backdrop-filter: blur(10px);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 15px 40px rgba(255, 0, 102, 0.5); /* Neon pink shadow */
-            max-width: 650px;
-            width: 100%;
-            border: 2px solid #ff00ff; /* Bright magenta border */
-        }
-        h2 {
-            color: #00ff99; /* Neon green */
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 2px 8px rgba(0, 255, 153, 0.8); /* Glowing green shadow */
-        }
-        p {
-            color: #ffff00; /* Bright yellow */
-            font-size: 16px;
-        }
-        .upload-box {
-            background: rgba(255, 0, 102, 0.1); /* Neon pink tint */
+            background-color: var(--dark-light);
             padding: 30px;
-            border-radius: 15px;
-            border: 3px dashed #ff0066; /* Hot pink dashed */
-            transition: border-color 0.3s ease;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid var(--border);
         }
+
+        h2 {
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        .upload-box {
+            background-color: rgba(255, 255, 255, 0.03);
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            margin: 20px 0;
+        }
+
         .upload-box:hover {
-            border-color: #00ff99; /* Neon green on hover */
+            border-color: var(--primary);
         }
+
         textarea {
             width: 100%;
             height: 180px;
-            padding: 15px;
-            border: 2px solid #ff00ff; /* Magenta border */
-            border-radius: 10px;
-            background: rgba(0, 0, 0, 0.5); /* Darker bg */
-            color: #00ffff; /* Cyan text */
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background-color: rgba(0, 0, 0, 0.2);
+            color: var(--text);
+            font-family: 'Inter', monospace;
             font-size: 14px;
             resize: none;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            transition: all 0.2s ease;
         }
+
         textarea:focus {
-            border-color: #ffff00; /* Yellow on focus */
-            box-shadow: 0 0 15px rgba(255, 255, 0, 0.8); /* Bright yellow glow */
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(58, 134, 255, 0.2);
         }
+
         button {
-            background: linear-gradient(90deg, #ff0066, #ff00ff); /* Pink to magenta */
-            color: #00ffff; /* Cyan text */
-            padding: 14px;
+            background-color: var(--primary);
+            color: white;
+            padding: 12px 16px;
             border: none;
-            border-radius: 50px;
+            border-radius: 6px;
             width: 100%;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 0.95rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            margin-top: 20px;
-            text-transform: uppercase;
+            transition: all 0.2s ease;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
+
         button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(255, 0, 102, 0.8); /* Neon pink glow */
-            background: linear-gradient(90deg, #00ff99, #00ffff); /* Green to cyan */
+            background-color: var(--primary-dark);
         }
+
         .loading {
             display: none;
-            font-size: 18px;
-            color: #ff00ff; /* Magenta spinner */
+            font-size: 0.95rem;
+            color: var(--text);
             margin-top: 20px;
-            animation: pulse 1.5s infinite;
+            text-align: center;
         }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
+
+        .loading i {
+            margin-right: 8px;
+            animation: spin 1.2s linear infinite;
         }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .hint {
-            margin-top: 25px;
-            font-size: 18px; /* Bigger text */
-            color: #ff00ff; /* Neon magenta */
-            font-weight: 700; /* Bold */
-            text-transform: uppercase; /* All caps */
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
+
         .hint a {
-            display: inline-block; /* For box styling */
-            padding: 4px 12px; /* Box padding */
-            background: #ffffff; /* White background */
-            color: #ff0066; /* Hot pink text */
-            text-decoration: underline; /* Underlined */
-            border: 2px solid #00ffff; /* Cyan border */
-            border-radius: 8px; /* Rounded corners */
-            font-size: 20px; /* Slightly bigger */
-            font-weight: 900; /* Extra bold */
-            text-shadow: 0 0 5px rgba(255, 0, 102, 0.8); /* Pink glow */
-            animation: rabbitHole 1.5s infinite alternate; /* Pulsing effect */
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
         }
+
         .hint a:hover {
-            transform: scale(1.1); /* Zoom on hover */
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 30px rgba(255, 0, 102, 0.8); /* Cyan and pink glow */
-            background: #ffff00; /* Yellow background on hover */
-            color: #ff00ff; /* Magenta text on hover */
+            text-decoration: underline;
         }
-        @keyframes rabbitHole {
-            0% { transform: scale(1); box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); }
-            100% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255, 0, 102, 0.8); }
+
+        .success-container {
+            text-align: center;
+            padding: 25px;
+            background-color: var(--dark-light);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+        }
+
+        .success-heading {
+            color: var(--success);
+            margin-bottom: 15px;
+        }
+
+        .success-text {
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .error-message {
+            text-align: center;
+            color: var(--danger);
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2><i class="fas fa-lock"></i> SecureDoc XML Validator</h2>
-        <p>Validate your XML with maximum swagger!</p>
+        <h2><i class="fas fa-shield-alt"></i> SecureDoc XML Validator</h2>
+        <p>Validate your XML documents with enterprise-grade security</p>
 
         <div class="upload-box">
             <form method="POST" action="" id="docForm">
-                <textarea name="xmlInput" placeholder="Drop your XML here, bro!"></textarea>
-                <button type="submit">Validate Document</button>
+                <textarea name="xmlInput" placeholder="Paste your XML document here..."></textarea>
+                <button type="submit"><i class="fas fa-check-circle"></i> Validate Document</button>
             </form>
         </div>
 
-        <p class="loading"><i class="fas fa-spinner fa-spin"></i> Processing...</p>
+        <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i> Processing your document...
+        </div>
 
-        <p class="hint">🔒 Admin-only <a href="/admin">reports</a> are lit!</p>
+        <p class="hint"><i class="fas fa-lock"></i> Admin-only <a href="/admin">reports</a> available</p>
     </div>
 
     <script>
         document.getElementById('docForm').addEventListener('submit', function() {
             document.querySelector('.loading').style.display = 'block';
         });
+        
+        const textarea = document.querySelector('textarea');
+        textarea.addEventListener('focus', function() {
+            document.querySelector('.upload-box').style.borderColor = 'var(--primary)';
+        });
+        
+        textarea.addEventListener('blur', function() {
+            document.querySelector('.upload-box').style.borderColor = 'var(--border)';
+        });
     </script>
 </body>
 </html>
+
