@@ -1,6 +1,6 @@
 name : اشاااارااااااككككك
 
-description : مش عايز تشرب
+description : Solve the riddle where truth shifts like sand and unlock the forbidden knowledge 
 
 port : 8089
 
